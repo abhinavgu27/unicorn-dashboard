@@ -6,15 +6,16 @@ export default function Home() {
   const [status, setStatus] = useState('System Standby');
   const [logs, setLogs] = useState<string[]>([]);
   const [aiOutput, setAiOutput] = useState('');
+  const [brandingUrl, setBrandingUrl] = useState(''); // NEW: Holds the image URL
   const [isLaunching, setIsLaunching] = useState(false);
 
   const handleLaunch = async () => {
     if (!industry) return;
-    
     setIsLaunching(true);
     setStatus('Engine Active...');
-    setLogs(['[SYSTEM] Connecting to Render Cloud...', '[SYSTEM] Waking up Llama-3 on Groq...']);
+    setLogs(['[SYSTEM] Connecting to Render Cloud...', '[SYSTEM] Waking up Llama-3 & FLUX...']);
     setAiOutput('// Agents are architecting your startup... please wait.');
+    setBrandingUrl(''); // Reset the image
 
     try {
       // POINTING TO YOUR LIVE RENDER URL
@@ -24,106 +25,98 @@ export default function Home() {
         body: JSON.stringify({ industry: industry }),
       });
 
-      if (!response.ok) throw new Error('Backend failed');
-
       const data = await response.json();
-
+      
       setLogs(prev => [
         ...prev, 
         '[CEO] Strategic Roadmap Defined.', 
-        '[CTO] Prototype Source Code Generated.', 
-        '[BOARD] Code Review Complete: APPROVED.'
+        '[DESIGNER] Brand Identity Generated.',
+        '[CTO] Prototype Source Code Generated.'
       ]);
       
-      setAiOutput(data.code); 
+      setAiOutput(data.codebase_status || '// Error: Could not reach the AI Brain.');
+      
+      // If the backend sent an image URL, display it!
+      if (data.branding_url && data.branding_url.startsWith('http')) {
+          setBrandingUrl(data.branding_url);
+      }
+      
       setStatus('Success: Global Launch');
     } catch (error) {
-      setLogs(prev => [...prev, '[ERROR] Connection to Render failed. Is the server waking up?']);
       setStatus('System Error');
-      setAiOutput('// Error: Could not reach the AI Brain.');
-    } finally {
-      setIsLaunching(false);
+      setLogs(prev => [...prev, '[ERROR] Connection to Render failed.']);
     }
+    setIsLaunching(false);
   };
 
   return (
-    <main className="min-h-screen bg-black text-white p-8 font-sans">
-      <div className="max-w-6xl mx-auto">
-        
-        {/* Header */}
-        <div className="flex justify-between items-center mb-12 border-b border-gray-800 pb-6">
-          <div>
-            <h1 className="text-4xl font-black tracking-tighter text-blue-500 italic">UNICORN ENGINE v1.0</h1>
-            <p className="text-gray-500 text-sm mt-1 uppercase tracking-widest">Live Production Environment</p>
+    <div className="min-h-screen bg-gray-950 text-white p-8 font-sans">
+      <header className="mb-8 border-b border-gray-800 pb-4 flex justify-between items-end">
+        <div>
+          <h1 className="text-4xl font-black italic text-blue-500 tracking-tighter">UNICORN ENGINE v2.0</h1>
+          <p className="text-gray-400 text-sm tracking-widest mt-1">MULTIMODAL PRODUCTION ENVIRONMENT</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-gray-500 tracking-widest">ENDPOINT</p>
+          <p className={`text-sm ${status.includes('Error') ? 'text-red-500' : status.includes('Success') ? 'text-green-500' : 'text-blue-400'}`}>{status}</p>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - Inputs & Visuals */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-2xl">
+            <h2 className="text-xl font-bold mb-2">Market Disruption</h2>
+            <p className="text-gray-400 text-sm mb-6">Enter an industry to trigger the Agentic Workflow.</p>
+            <input 
+              type="text" 
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              placeholder="e.g. fashion, space travel" 
+              className="w-full bg-black border border-gray-700 rounded-lg p-3 text-white mb-6 focus:border-blue-500 focus:outline-none"
+            />
+            <button 
+              onClick={handleLaunch}
+              disabled={isLaunching}
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white font-bold py-3 rounded-lg transition-all"
+            >
+              {isLaunching ? 'AGENTS WORKING...' : 'LAUNCH UNICORN ENGINE'}
+            </button>
           </div>
-          <div className="text-right">
-            <div className="text-xs text-gray-500 uppercase tracking-widest">Endpoint</div>
-            <div className={`text-sm font-mono ${status === 'System Error' ? 'text-red-500' : 'text-green-400'}`}>
-               {status}
+
+          {/* BRAND IDENTITY CARD (Appears when image is ready) */}
+          {brandingUrl && (
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-2xl animate-fade-in">
+               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                 <span className="w-2 h-2 rounded-full bg-pink-500"></span> Brand Identity
+               </h2>
+               <img src={brandingUrl} alt="Generated Startup Logo" className="w-full rounded-lg shadow-lg border border-gray-800" />
             </div>
-          </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Strategic Input */}
-          <div className="lg:col-span-1">
-            <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800 shadow-2xl sticky top-8">
-              <h2 className="text-xl font-bold mb-4">Market Disruption</h2>
-              <p className="text-gray-400 text-sm mb-6">Enter an industry to trigger the Agentic Workflow.</p>
-              
-              <input 
-                type="text" 
-                placeholder="e.g. Sustainable Fashion, Web3 Real Estate..."
-                className="w-full p-4 rounded-xl bg-black border border-gray-700 text-white focus:ring-2 focus:ring-blue-500 outline-none mb-6 transition-all"
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-              />
-              
-              <button 
-                onClick={handleLaunch}
-                disabled={isLaunching || !industry}
-                className={`w-full py-4 rounded-xl font-bold transition-all transform active:scale-95 ${
-                  isLaunching ? 'bg-gray-700 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20'
-                }`}
-              >
-                {isLaunching ? 'AGENTS WORKING...' : 'LAUNCH UNICORN ENGINE'}
-              </button>
-            </div>
+        {/* Right Column - Outputs */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-black border border-gray-800 rounded-xl p-6 font-mono text-sm shadow-2xl h-64 overflow-y-auto">
+            <p className="text-blue-500 font-bold mb-4 italic tracking-widest">AGENT_LOG_STREAM</p>
+            {logs.map((log, i) => (
+              <p key={i} className="text-gray-300 mb-2">{log}</p>
+            ))}
           </div>
 
-          {/* Activity & Output */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Log Terminal */}
-            <div className="bg-black p-6 rounded-2xl border border-gray-800 h-64 font-mono text-xs overflow-y-auto shadow-inner">
-              <div className="text-blue-500 mb-2 font-bold underline italic tracking-widest">AGENT_LOG_STREAM</div>
-              {logs.length === 0 && <div className="text-gray-700 italic mt-4">Awaiting launch signal...</div>}
-              {logs.map((log, i) => (
-                <div key={i} className="text-gray-400 py-1 flex items-start">
-                  <span className="text-blue-900 mr-2">[{new Date().toLocaleTimeString()}]</span>
-                  <span>{log}</span>
-                </div>
-              ))}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden shadow-2xl">
+            <div className="bg-gray-800 px-6 py-3 border-b border-gray-700 flex justify-between items-center">
+              <h2 className="font-bold flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-purple-500"></span> AI Generated Prototype
+              </h2>
+              <span className="text-xs text-gray-400 font-mono">language: python</span>
             </div>
-
-            {/* Generated Code */}
-            <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold flex items-center">
-                  <span className="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse"></span>
-                  AI Generated Prototype
-                </h2>
-                <span className="text-xs text-gray-500 font-mono">language: python</span>
-              </div>
-              <pre className="bg-black p-4 rounded-xl text-purple-400 font-mono text-sm overflow-x-auto min-h-[250px] border border-gray-800">
-                {aiOutput || "// System Ready. Awaiting CEO instructions..."}
-              </pre>
+            <div className="p-6 bg-[#0d1117] overflow-x-auto">
+              <pre className="text-pink-400 font-mono text-sm whitespace-pre-wrap">{aiOutput}</pre>
             </div>
-
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
